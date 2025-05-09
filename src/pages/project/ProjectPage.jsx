@@ -1,52 +1,32 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   getAllProjects,
   getProjectsByProjectStage,
   getProjectsByJobType
 } from '../../services/projectService';
-
-import { Link } from 'react-router-dom';
-
-// ENUM değerleri: Backend'deki ProjectStage ve JobType enum'larının karşılıkları
-const PROJECT_STAGE_OPTIONS = [
-  "IPTAL",
-  "VERILDI_ONAY_BEKLIYOR",
-  "TAMAMLANDI",
-  "HAZIRLANDI_VERILMEDI",
-  "HAZIRLANDI_EKSIK_VAR",
-  "HAZIRLANACAK"
-];
-
-const JOB_TYPE_OPTIONS = [
-  "GES_PROJESI",
-  "GUC_ARTISI",
-  "YENI_ABONELIK"
-];
+import ProjectStages from '../../constants/projectStages';
+import JobTypes from '../../constants/jobTypes';
 
 const ProjectPage = () => {
-  const [projects, setProjects] = useState([]); // API'den gelen proje listesi
-  const [selectedStage, setSelectedStage] = useState(''); // Seçilen durum filtresi
-  const [selectedJobType, setSelectedJobType] = useState(''); // Seçilen iş tipi filtresi
+  const [projects, setProjects] = useState([]);
+  const [selectedStage, setSelectedStage] = useState('');
+  const [selectedJobType, setSelectedJobType] = useState('');
 
-  // Sayfa ilk yüklendiğinde tüm projeleri getir
   useEffect(() => {
     fetchAllProjects();
   }, []);
 
-  // Tüm projeleri çek (varsayılan liste)
   const fetchAllProjects = () => {
     getAllProjects()
       .then(res => setProjects(res.data))
       .catch(err => console.error("Projeler alınamadı:", err));
   };
 
-  // Duruma göre filtreleme yap
   const handleStageChange = (e) => {
     const value = e.target.value;
-    setSelectedStage(value); // seçilen değeri Stage'e ata
-
+    setSelectedStage(value);
     if (value === '') {
-      // "Tümü" seçildiyse tekrar tüm projeleri getir
       fetchAllProjects();
     } else {
       getProjectsByProjectStage(value)
@@ -55,13 +35,10 @@ const ProjectPage = () => {
     }
   };
 
-  // İş tipine göre filtreleme yap
   const handleJobTypeChange = (e) => {
     const value = e.target.value;
-    setSelectedJobType(value); // seçilen iş tipini state'e ata
-
+    setSelectedJobType(value);
     if (value === '') {
-      // "Tümü" seçildiyse tekrar tüm projeleri getir
       fetchAllProjects();
     } else {
       getProjectsByJobType(value)
@@ -74,32 +51,23 @@ const ProjectPage = () => {
     <div className="container mt-4">
       <h2>Proje Listesi</h2>
 
-      {/* Filtreleme Seçenekleri */}
       <div className="row mb-3">
         <div className="col-md-6">
           <label>Duruma Göre Filtrele:</label>
-          <select
-            className="form-control"
-            value={selectedStage}
-            onChange={handleStageChange}
-          >
+          <select className="form-control" value={selectedStage} onChange={handleStageChange}>
             <option value="">Tümü</option>
-            {PROJECT_STAGE_OPTIONS.map(stage => (
-              <option key={stage} value={stage}>{stage}</option>
+            {ProjectStages.map(stage => (
+              <option key={stage.value} value={stage.value}>{stage.label}</option>
             ))}
           </select>
         </div>
 
         <div className="col-md-6">
           <label>İş Tipine Göre Filtrele:</label>
-          <select
-            className="form-control"
-            value={selectedJobType}
-            onChange={handleJobTypeChange}
-          >
+          <select className="form-control" value={selectedJobType} onChange={handleJobTypeChange}>
             <option value="">Tümü</option>
-            {JOB_TYPE_OPTIONS.map(type => (
-              <option key={type} value={type}>{type}</option>
+            {JobTypes.map(type => (
+              <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
         </div>
@@ -109,8 +77,6 @@ const ProjectPage = () => {
         <Link to="/projects/create" className="btn btn-primary">+ Yeni Proje</Link>
       </div>
 
-
-      {/* Projeleri Listele */}
       <table className="table table-bordered table-striped">
         <thead>
           <tr>
@@ -123,16 +89,20 @@ const ProjectPage = () => {
           </tr>
         </thead>
         <tbody>
-          {projects.map(proj => (
-            <tr key={proj.id}>
-              <td><Link to={`/projects/${proj.id}`}>{proj.name}</Link></td>
-              <td>{proj.owner}</td>
-              <td>{proj.responsible}</td>
-              <td>{proj.startDate}</td>
-              <td>{proj.projectStage}</td>
-              <td>{proj.jobType}</td>
-            </tr>
-          ))}
+          {projects.map(proj => {
+            const stage = ProjectStages.find(p => p.value === proj.projectStage)?.label || proj.projectStage;
+            const jobType = JobTypes.find(j => j.value === proj.jobType)?.label || proj.jobType;
+            return (
+              <tr key={proj.id}>
+                <td><Link to={`/projects/${proj.id}`}>{proj.name}</Link></td>
+                <td>{proj.owner}</td>
+                <td>{proj.responsible}</td>
+                <td>{proj.startDate}</td>
+                <td>{stage}</td>
+                <td>{jobType}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

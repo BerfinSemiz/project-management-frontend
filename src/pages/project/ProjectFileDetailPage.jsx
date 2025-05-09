@@ -1,23 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   getProjectFiles,
   uploadProjectFile,
   deleteProjectFile,
   downloadProjectFileUrl
-} from '../../services/fileListService';
+} from '../../services/projectFileDetailService';
 
-const documentTypes = [
-  { label: 'Statik Proje', value: 'STATIK_PROJE' },
-  { label: 'Çağrı Mektubu', value: 'CAGRI_MEKTUBU' },
-  { label: 'Bağlantı Anlaşması', value: 'BAGLANTI_ANLASMASI' },
-  { label: 'GES Elektrik Proje', value: 'GES_ELEKTRIK_PROJE' },
-  { label: 'Belediye Uygunluk', value: 'BELEDIYE_UYGUNLUK' },
-  { label: 'Ön Kabul', value: 'ON_KABUL' },
-  { label: 'Geçici Kabul', value: 'GECICI_KABUL' },
-];
+import documentTypes from '../../constants/documentTypes';
 
-const FileListPage = () => {
+
+const ProjectFileDetailPage = () => {
   const { id } = useParams();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,11 +21,7 @@ const FileListPage = () => {
     documentNumber: ''
   });
 
-  useEffect(() => {
-    fetchFiles();
-  }, [id]);
-
-  const fetchFiles = () => {
+  const fetchFiles = useCallback(() => {
     getProjectFiles(id)
       .then(res => {
         setFiles(res.data);
@@ -42,7 +31,11 @@ const FileListPage = () => {
         console.error("Dosyalar alınamadı:", err);
         setLoading(false);
       });
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -60,17 +53,34 @@ const FileListPage = () => {
       return;
     }
 
-    uploadProjectFile(id, file, documentType, documentDate, documentNumber)
-      .then(() => {
-        alert("Dosya yüklendi.");
-        setFormData({ file: null, documentType: '', documentDate: '', documentNumber: '' });
-        document.getElementById('fileInput').value = '';
-        fetchFiles();
-      })
-      .catch(err => {
-        console.error("Yükleme hatası:", err);
-        alert("Yükleme başarısız.");
-      });
+    const existingFile = files.find(f => f.documentType === documentType);
+
+    const proceedUpload = () => {
+      uploadProjectFile(id, file, documentType, documentDate, documentNumber)
+        .then(() => {
+          alert("Dosya yüklendi.");
+          setFormData({ file: null, documentType: '', documentDate: '', documentNumber: '' });
+          document.getElementById('fileInput').value = '';
+          fetchFiles();
+        })
+        .catch(err => {
+          console.error("Yükleme hatası:", err);
+          alert("Yükleme başarısız.");
+        });
+    };
+
+    if (existingFile) {
+      if (window.confirm("Bu belge türü zaten mevcut. Üzerine yazmak istiyor musunuz?")) {
+        deleteProjectFile(existingFile.id)
+          .then(() => proceedUpload())
+          .catch(err => {
+            console.error("Önceki dosya silinemedi:", err);
+            alert("Dosya güncellenemedi.");
+          });
+      }
+    } else {
+      proceedUpload();
+    }
   };
 
   const handleDelete = (fileId) => {
@@ -85,10 +95,6 @@ const FileListPage = () => {
   };
 
   const getFileByType = (type) => files.find(f => f.documentType === type.value);
-  const getLabelFromValue = (value) => {
-    const item = documentTypes.find(type => type.value === value);
-    return item ? item.label : value;
-  };
 
   if (loading) return <div>Yükleniyor...</div>;
 
@@ -146,7 +152,7 @@ const FileListPage = () => {
                   {file ? (
                     <>
                       <a
-                        href={downloadProjectFileUrl(file.filePath)}
+                        href={downloadProjectFileUrl(file.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn btn-sm btn-outline-primary me-2"
@@ -175,4 +181,4 @@ const FileListPage = () => {
   );
 };
 
-export default FileListPage;
+export default ProjectFileDetailPage;

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getProjectById, deleteProject } from '../../services/projectService';
+import { useParams, Link } from 'react-router-dom';
+import { getProjectById } from '../../services/projectService';
+import JobTypes from '../../constants/jobTypes';
+import ProjectStages from '../../constants/projectStages';
 
 const DetailProjectPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,30 +19,49 @@ const DetailProjectPage = () => {
         console.error("Proje detayı alınamadı:", err);
         setLoading(false);
       });
+
   }, [id]);
 
-  const handleDelete = () => {
-    if (window.confirm("Bu projeyi silmek istediğinize emin misiniz?")) {
-      deleteProject(id)
-        .then(() => {
-          alert("Proje başarıyla silindi.");
-          navigate('/projects');
-        })
-        .catch(err => {
-          console.error("Silme işlemi sırasında hata:", err);
-          alert("Proje silinirken bir hata oluştu.");
-        });
-    }
-  };
+  useEffect(() => {
+    return () => {
+      document.title = 'GRUNTECH SOLAR - Proje Detayı';
+    };
+  }, []);
+  
 
+  
   if (loading) return <div>Yükleniyor...</div>;
   if (!project) return <div>Proje bulunamadı.</div>;
 
+  const jobTypeLabel = JobTypes.find(j => j.value === project.jobType)?.label || project.jobType;
+  const projectStageLabel = ProjectStages.find(s => s.value === project.status)?.label || project.status;
+
+  const renderTable = (title, rows) => (
+    <div className="card mb-4 shadow-sm">
+      <div className="card-header fw-bold bg-light">{title}</div>
+      <div className="card-body p-0">
+        <table className="table table-sm table-striped mb-0">
+          <tbody>
+            {rows.map(([label, value], idx) => (
+              <tr key={idx}>
+                <th className="w-25 text-nowrap text-secondary small">{label}</th>
+                <td>{value || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>{project.name}</h2>
-        <div>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 d-print-none">
+        
+        <div className="mt-2 mt-md-0 ms-md-auto">
+          <button onClick={() => window.print()} className="btn btn-outline-secondary btn-sm me-2">
+            Yazdır
+          </button>
           <Link to={`/projects/${project.id}/files`} className="btn btn-info btn-sm me-2">
             Belgeleri Görüntüle
           </Link>
@@ -50,82 +70,55 @@ const DetailProjectPage = () => {
           </Link>
         </div>
       </div>
+      <h2>{project.name}</h2>     
+      {renderTable("Genel Bilgiler", [
+        ["İşin Sahibi", project.owner],
+        ["Sorumlu", project.responsible]
+      ])}
 
-      {/* 1 Genel Bilgiler */}
-      <h5 className="mt-4">Genel Bilgiler</h5>
-      <table className="table table-bordered">
-        <tbody>
-          <tr><th>İşin Sahibi</th><td>{project.owner}</td></tr>
-          <tr><th>Sorumlu</th><td>{project.responsible}</td></tr>
-        </tbody>
-      </table>
+      {renderTable("İş Tanımı", [
+        ["İş Tipi", jobTypeLabel],
+        ["Kapsam", project.scope],
+        ["Mahiyet", project.description],
+        ["Genel Notlar", project.generalNotes]
+      ])}
 
-      {/* 2 İş Tanımı */}
-      <h5 className="mt-4">İş Tanımı</h5>
-      <table className="table table-bordered">
-        <tbody>
-          <tr><th>İş Tipi</th><td>{project.jobType}</td></tr>
-          <tr><th>Kapsam</th><td>{project.scope}</td></tr>
-          <tr><th>Mahiyet</th><td>{project.description}</td></tr>
-          <tr><th>Genel Notlar</th><td>{project.generalNotes}</td></tr>
-        </tbody>
-      </table>
+      {renderTable("Yer Bilgisi", [
+        ["Yer Sahibi", project.locationOwner],
+        ["Adres", project.address],
+        ["Ada / Parsel", project.parcel]
+      ])}
 
-      {/* 3 Yer Bilgisi */}
-      <h5 className="mt-4">Yer Bilgisi</h5>
-      <table className="table table-bordered">
-        <tbody>
-          <tr><th>Yer Sahibi</th><td>{project.locationOwner}</td></tr>
-          <tr><th>Adres</th><td>{project.address}</td></tr>
-          <tr><th>Ada/Parsel</th><td>{project.parcel}</td></tr>
-        </tbody>
-      </table>
+      {renderTable("Ekipman Bilgisi", [
+        ["PV Panel Tipi", project.panelType],
+        ["Panel Adedi", project.panelCount],
+        ["İnverter", project.inverter],
+        ["İnverter Seri No", project.inverterSerial]
+      ])}
 
-      {/* 4 Ekipman Bilgisi */}
-      <h5 className="mt-4">Ekipman Bilgisi</h5>
-      <table className="table table-bordered">
-        <tbody>
-          <tr><th>PV Panel Tipi</th><td>{project.panelType}</td></tr>
-          <tr><th>Panel Adedi</th><td>{project.panelCount}</td></tr>
-          <tr><th>İnverter</th><td>{project.inverter}</td></tr>
-          <tr><th>İnverter Seri No</th><td>{project.inverterSerial}</td></tr>
-        </tbody>
-      </table>
+      {renderTable("Zaman Bilgisi", [
+        ["Başlangıç Tarihi", project.startDate],
+        ["Bitiş Tarihi", project.endDate]
+      ])}
 
-      {/* 5 Zaman Bilgisi */}
-      <h5 className="mt-4">Zaman Bilgisi</h5>
-      <table className="table table-bordered">
-        <tbody>
-          <tr><th>Başlangıç Tarihi</th><td>{project.startDate}</td></tr>
-          <tr><th>Bitiş Tarihi</th><td>{project.endDate}</td></tr>
-        </tbody>
-      </table>
+      {renderTable("Süreç ve Durumlar", [
+        ["Durum", projectStageLabel],
+        ["Çağrı Mektubu", project.callLetterStatus],
+        ["Proje Onayı", project.approvalStatus || '-'],
+        ["Bağlantı Anlaşması", project.connectionAgreement],
+        ["Statik Durumu", project.staticStatus],
+        ["Son İşlem", project.lastOperation]
+      ])}
 
-      {/* 6 Diğer Süreçler ve Durumlar */}
-      <h5 className="mt-4">Proje Süreç Durumları</h5>
-      <table className="table table-bordered">
-        <tbody>
-          <tr><th>Durum</th><td>{project.status}</td></tr>
-          <tr><th>Çağrı Mektubu</th><td>{project.callLetterStatus}</td></tr>
-          <tr><th>Proje Onayı</th><td>{project.approvalStatus} ({project.approvalDueText})</td></tr>
-          <tr><th>Bağlantı Anlaşması</th><td>{project.connectionAgreement}</td></tr>
-          <tr><th>Statik Durumu</th><td>{project.staticStatus}</td></tr>
-          <tr><th>Son İşlem</th><td>{project.lastOperation}</td></tr>
-        </tbody>
-      </table>
+      {renderTable("Faturalandırmalar", [
+        ["Fatura Durumu", project.invoiceStatus]
+      ])}
 
-      {/* 7 Faturalandırmalar */}
-      <h5 className="mt-4">Faturalandırmalar</h5>
-      <table className="table table-bordered">
-        <tbody>
-          <tr><th>Fatura Durumu</th><td>{project.invoiceStatus}</td></tr>
-        </tbody>
-      </table>
-
-      {/* Geri Dön */}
-      <Link to="/projects" className="btn btn-secondary mt-4">
-        ← Proje Listesine Geri Dön
-      </Link>
+      <div className="d-print-none">
+        <Link to="/projects" className="btn btn-secondary mt-4">
+          ← Proje Listesine Geri Dön
+        </Link>
+      </div>
     </div>
   );
 };
