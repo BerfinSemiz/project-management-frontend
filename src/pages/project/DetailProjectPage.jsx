@@ -103,7 +103,8 @@ const DetailProjectPage = () => {
 
       {renderTable("Süreç ve Durumlar", [
         ["Durum", projectStageLabel],
-        ["Çağrı Mektubu", project.callLetterStatus],
+        ["Yönetmelik Tipi", project.regulationTypes],
+        ["Çağrı Mektubu Tarihi", project.callLetterDate],
         ["Proje Onayı", project.approvalStatus || '-'],
         ["Bağlantı Anlaşması", project.connectionAgreement],
         ["Statik Durumu", project.staticStatus],
